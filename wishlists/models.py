@@ -5,7 +5,7 @@ from common.models import CommonModel
 # Create your models here.
 
 
-class Review(CommonModel):
+class WishList(CommonModel):
     """Wishlist model Definition"""
 
     name = models.CharField(
