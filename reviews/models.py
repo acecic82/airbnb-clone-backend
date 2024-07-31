@@ -18,6 +18,7 @@ class Review(CommonModel):
         null=True,
         blank=True,
         on_delete=models.CASCADE,
+        related_name="reviews",
     )
 
     experience = models.ForeignKey(

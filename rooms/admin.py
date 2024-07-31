@@ -6,13 +6,24 @@ from rooms.models import Amenity, Room
 # Register your models here.
 
 
+@admin.action(description="Set all prices to zero")
+def reset_prices(model_admin, request, rooms):
+    for room in rooms.all():
+        room.price = 0
+        room.save()
+
+
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
+
+    actions = (reset_prices,)
+
     list_display = (
         "name",
         "price",
         "kind",
         "total_amenities",
+        "rating",
         "owner",
         "created_at",
     )
@@ -28,6 +39,17 @@ class RoomAdmin(admin.ModelAdmin):
         "amenities",
         "created_at",
         "updated_at",
+    )
+
+    search_fields = (
+        # contains
+        "name",
+        # startwith
+        "^price",
+        # exact -> =price
+        # foreignKey -> User.username contain case
+        # you can also use ^owner__username"
+        "owner__username",
     )
 
     def get_form(self, request, obj=None, **kwargs):
