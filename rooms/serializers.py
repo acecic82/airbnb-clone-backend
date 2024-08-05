@@ -1,10 +1,9 @@
 from rest_framework import serializers
 
 from rooms.models import Amenity
-from .models import Category
 
 
-class CategorySerializer(serializers.ModelSerializer):
+class AmenitySerializer(serializers.ModelSerializer):
     class Meta:
-        model = Category
+        model = Amenity
         fields = "__all__"
