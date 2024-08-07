@@ -15,6 +15,19 @@ class AmenitySerializer(serializers.ModelSerializer):
 
 
 class RoomListSerializer(serializers.ModelSerializer):
+    # # get_xxx 형태의 def 를 호출함
+    # rating = serializers.SerializerMethodField()
+
+    # # rating 을 선언하면 이걸 호출(SerializerMethodField())
+    # def get_rating(self, room):
+    #     return room.rating()
+
+    is_owner = serializers.SerializerMethodField()
+
+    def get_is_owner(self, room):
+        request = self.context["request"]
+        return request.user == room.owner
+
     class Meta:
         model = Room
         fields = (
@@ -23,6 +36,8 @@ class RoomListSerializer(serializers.ModelSerializer):
             "country",
             "city",
             "price",
+            "rating",
+            "is_owner",
         )
 
 
@@ -38,6 +53,13 @@ class RoomSerializer(serializers.ModelSerializer):
     category = CategorySerializer(
         read_only=True,
     )
+
+    # get_xxx 형태의 def 를 호출함
+    rating = serializers.SerializerMethodField()
+
+    # rating 을 선언하면 이걸 호출(SerializerMethodField())
+    def get_rating(self, room):
+        return room.rating()
 
     class Meta:
         model = Room

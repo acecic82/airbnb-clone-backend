@@ -57,6 +57,9 @@ class Rooms(APIView):
         roomListSerializer = RoomListSerializer(
             all_rooms,
             many=True,
+            context={
+                "request": request,
+            },
         )
 
         return Response(roomListSerializer.data)
