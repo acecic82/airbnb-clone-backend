@@ -1,13 +1,131 @@
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.db import transaction
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import (
+    NotFound,
+    NotAuthenticated,
+    ParseError,
+    PermissionDenied,
+)
 from rest_framework.status import HTTP_204_NO_CONTENT
 from rooms.models import Amenity, Room
-from rooms.serializers import AmenitySerializer
+from categories.models import Category
+from rooms.serializers import AmenitySerializer, RoomListSerializer, RoomSerializer
 
 # Create your views here.
+
+
+def SaveRoomWIthOwnerAndCategoryAndAmenity(request, serializer, category_pk):
+    if "category" in request.data:
+        try:
+            category = Category.objects.get(pk=category_pk)
+            if category.kind != Category.CategoryKindChoices.ROOMS:
+                raise ParseError("The category kind should be 'rooms.'")
+        except Category.DoesNotExist:
+            raise ParseError("Category not found.")
+
+    try:
+        with transaction.atomic():
+            if "category" in request.data:
+                room = serializer.save(
+                    owner=request.user,
+                    category=category,
+                )
+            else:
+                room = serializer.save()
+
+            if "amenities" in request.data:
+                amenities = request.data.get("amenities")
+
+                room.amenities.clear()
+                for amenity_pk in amenities:
+                    amenity = Amenity.objects.get(pk=amenity_pk)
+                    room.amenities.add(amenity)
+
+            return Response(
+                RoomSerializer(room).data,
+            )
+    except Exception:
+        raise ParseError("Amenity not found")
+
+
+class Rooms(APIView):
+    def get(self, request):
+        all_rooms = Room.objects.all()
+        roomListSerializer = RoomListSerializer(
+            all_rooms,
+            many=True,
+        )
+
+        return Response(roomListSerializer.data)
+
+    def post(self, request):
+        if not request.user.is_authenticated:
+            raise NotAuthenticated
+
+        if request.user.is_authenticated:
+            serializer = RoomSerializer(
+                data=request.data,
+            )
+            if serializer.is_valid():
+                category_pk = request.data.get("category")
+                if not category_pk:
+                    raise ParseError("Category is required.")
+                return SaveRoomWIthOwnerAndCategoryAndAmenity(
+                    request, serializer, category_pk
+                )
+            else:
+                return Response(serializer.errors)
+        else:
+            raise NotAuthenticated
+
+
+class RoomDeatil(APIView):
+    def get_object(self, room_id):
+        try:
+            return Room.objects.get(pk=room_id)
+        except Room.DoesNotExist:
+            raise NotFound
+
+    def get(self, request, room_id):
+        room = self.get_object(room_id)
+        roomSerializer = RoomSerializer(room)
+
+        return Response(roomSerializer.data)
+
+    def put(self, request, room_id):
+        room = self.get_object(room_id)
+
+        if not request.user.is_authenticated:
+            raise NotAuthenticated
+        if room.owner != request.user:
+            raise PermissionDenied
+
+        roomSerializer = RoomSerializer(
+            room,
+            request.data,
+            partial=True,
+        )
+
+        if roomSerializer.is_valid():
+            return SaveRoomWIthOwnerAndCategoryAndAmenity(
+                request,
+                roomSerializer,
+                request.data.get("category"),
+            )
+        else:
+            return Response(roomSerializer.errors)
+
+    def delete(self, request, room_id):
+        room = self.get_object(room_id)
+        if not request.user.is_authenticated:
+            raise NotAuthenticated
+        if room.owner != request.user:
+            raise PermissionDenied
+        room.delete()
+        return Response(status=HTTP_204_NO_CONTENT)
 
 
 def see_all_room(request):
