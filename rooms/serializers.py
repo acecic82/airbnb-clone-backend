@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from categories.serializers import CategorySerializer
+from reviews.serializers import ReviewSerializer
 from rooms.models import Amenity, Room
 from users.serializers import TinyUserSerializer
 
@@ -53,6 +54,10 @@ class RoomSerializer(serializers.ModelSerializer):
     category = CategorySerializer(
         read_only=True,
     )
+    # reviews = ReviewSerializer(
+    #     many=True,
+    #     read_only=True,
+    # )
 
     # get_xxx 형태의 def 를 호출함
     rating = serializers.SerializerMethodField()

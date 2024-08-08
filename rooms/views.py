@@ -10,6 +10,7 @@ from rest_framework.exceptions import (
     PermissionDenied,
 )
 from rest_framework.status import HTTP_204_NO_CONTENT
+from reviews.serializers import ReviewSerializer
 from rooms.models import Amenity, Room
 from categories.models import Category
 from rooms.serializers import AmenitySerializer, RoomListSerializer, RoomSerializer
@@ -213,3 +214,61 @@ class AmenityDeatil(APIView):
         amenity = self.get_object(amenity_id)
         amenity.delete()
         return Response(status=HTTP_204_NO_CONTENT)
+
+
+class RoomReviews(APIView):
+    def get_object(self, pk):
+        try:
+            return Room.objects.get(pk=pk)
+        except Room.DoesNotExist:
+            raise NotFound
+
+    def get(self, request, room_id):
+        try:
+            page = request.query_params.get("page", 1)
+            page = int(page)
+        except ValueError:
+            page = 1
+        page_size = 2
+
+        start = (page - 1) * page_size
+        end = page * page_size
+
+        room = self.get_object(room_id)
+
+        reviewSerializer = ReviewSerializer(
+            room.reviews.all()[start:end],
+            many=True,
+        )
+
+        return Response(
+            reviewSerializer.data,
+        )
+
+
+class RoomAmenities(APIView):
+    def get_object(self, pk):
+        try:
+            return Room.objects.get(pk=pk)
+        except Room.DoesNotExist:
+            raise NotFound
+
+    def get(self, request, room_id):
+        try:
+            page = request.query_params.get("page", 1)
+            page = int(page)
+        except ValueError:
+            page = 1
+
+        room = self.get_object(room_id)
+        page_size = 2
+
+        start = (page - 1) * page_size
+        end = page * page_size
+
+        amenitySerializer = AmenitySerializer(
+            room.amenities.all()[start:end],
+            many=True,
+        )
+
+        return Response(amenitySerializer.data)
