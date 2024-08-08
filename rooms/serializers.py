@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from categories.serializers import CategorySerializer
+from medias.serializers import PhotoSerializer
 from reviews.serializers import ReviewSerializer
 from rooms.models import Amenity, Room
 from users.serializers import TinyUserSerializer
@@ -24,6 +25,7 @@ class RoomListSerializer(serializers.ModelSerializer):
     #     return room.rating()
 
     is_owner = serializers.SerializerMethodField()
+    photos = PhotoSerializer(many=True, read_only=True)
 
     def get_is_owner(self, room):
         request = self.context["request"]
@@ -39,6 +41,7 @@ class RoomListSerializer(serializers.ModelSerializer):
             "price",
             "rating",
             "is_owner",
+            "photos",
         )
 
 
@@ -58,6 +61,11 @@ class RoomSerializer(serializers.ModelSerializer):
     #     many=True,
     #     read_only=True,
     # )
+
+    photos = PhotoSerializer(
+        many=True,
+        read_only=True,
+    )
 
     # get_xxx 형태의 def 를 호출함
     rating = serializers.SerializerMethodField()
