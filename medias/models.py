@@ -8,7 +8,7 @@ from common.models import CommonModel
 class Photo(CommonModel):
     """Photo Model Definition"""
 
-    file = models.ImageField()
+    file = models.URLField()
     description = models.CharField(
         max_length=140,
     )
@@ -32,7 +32,7 @@ class Photo(CommonModel):
 class Video(CommonModel):
     """Video Model Definition"""
 
-    file = models.FileField()
+    file = models.URLField()
     experience = models.OneToOneField(
         "experiences.Experience",
         on_delete=models.CASCADE,

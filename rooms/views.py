@@ -10,6 +10,8 @@ from rest_framework.exceptions import (
     PermissionDenied,
 )
 from rest_framework.status import HTTP_204_NO_CONTENT
+from config import settings
+from medias.serializers import PhotoSerializer
 from reviews.serializers import ReviewSerializer
 from rooms.models import Amenity, Room
 from categories.models import Category
@@ -229,10 +231,9 @@ class RoomReviews(APIView):
             page = int(page)
         except ValueError:
             page = 1
-        page_size = 2
 
-        start = (page - 1) * page_size
-        end = page * page_size
+        start = (page - 1) * settings.PAGE_SIZE
+        end = page * settings.PAGE_SIZE
 
         room = self.get_object(room_id)
 
@@ -261,10 +262,9 @@ class RoomAmenities(APIView):
             page = 1
 
         room = self.get_object(room_id)
-        page_size = 2
 
-        start = (page - 1) * page_size
-        end = page * page_size
+        start = (page - 1) * settings.PAGE_SIZE
+        end = page * settings.PAGE_SIZE
 
         amenitySerializer = AmenitySerializer(
             room.amenities.all()[start:end],
@@ -272,3 +272,34 @@ class RoomAmenities(APIView):
         )
 
         return Response(amenitySerializer.data)
+
+
+class RoomPhotos(APIView):
+
+    def get_object(self, pk):
+        try:
+            return Room.objects.get(pk=pk)
+        except Room.DoesNotExist:
+            raise NotFound
+
+    def post(self, request, room_id):
+        room = self.get_object(room_id)
+
+        if not request.user.is_authenticated:
+            raise NotAuthenticated
+
+        if request.user != room.owner:
+            raise PermissionDenied
+
+        serializer = PhotoSerializer(data=request.data)
+
+        if serializer.is_valid():
+            photo = serializer.save(
+                room=room,
+            )
+            return Response(
+                PhotoSerializer(photo).data,
+            )
+
+        else:
+            raise Response(serializer.errors)

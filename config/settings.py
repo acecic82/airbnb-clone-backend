@@ -144,3 +144,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Auth (내가 쓸 유저 모델에 대한 지정 정의 )
 
 AUTH_USER_MODEL = "users.USER"
+
+MEDIA_ROOT = "uploads"
+
+MEDIA_URL = "user-upload/"
+
+PAGE_SIZE = 3
