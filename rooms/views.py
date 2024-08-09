@@ -10,6 +10,7 @@ from rest_framework.exceptions import (
     PermissionDenied,
 )
 from rest_framework.status import HTTP_204_NO_CONTENT
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from config import settings
 from medias.serializers import PhotoSerializer
 from reviews.serializers import ReviewSerializer
@@ -219,6 +220,9 @@ class AmenityDeatil(APIView):
 
 
 class RoomReviews(APIView):
+
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
     def get_object(self, pk):
         try:
             return Room.objects.get(pk=pk)
@@ -245,6 +249,19 @@ class RoomReviews(APIView):
         return Response(
             reviewSerializer.data,
         )
+
+    def post(self, request, room_id):
+        serializer = ReviewSerializer(data=request.data)
+
+        if serializer.is_valid():
+            review = serializer.save(
+                user=request.user,
+                room=self.get_object(room_id),
+            )
+
+            return Response(ReviewSerializer(review).data)
+        else:
+            raise ParseError
 
 
 class RoomAmenities(APIView):
