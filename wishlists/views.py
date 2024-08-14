@@ -91,9 +91,9 @@ class WishlistDetail(APIView):
 
 class WishlistToggle(APIView):
 
-    def get_wishlist(self, user, pk):
+    def get_wishlist(self, pk):
         try:
-            return WishList.objects.get(pk=pk, user=user)
+            return WishList.objects.get(pk=pk)
         except WishList.DoesNotExist:
             raise NotFound
 
@@ -104,7 +104,7 @@ class WishlistToggle(APIView):
             raise NotFound
 
     def put(self, request, pk, room_pk):
-        wishlist = self.get_wishlist(request.user, pk)
+        wishlist = self.get_wishlist(pk)
         room = self.get_room(room_pk)
 
         # wishlist.rooms.filter(pk=room.pk).exists()

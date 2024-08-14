@@ -98,7 +98,12 @@ class RoomDeatil(APIView):
 
     def get(self, request, room_id):
         room = self.get_object(room_id)
-        roomSerializer = RoomSerializer(room)
+        roomSerializer = RoomSerializer(
+            room,
+            context={
+                "request": request,
+            },
+        )
 
         return Response(roomSerializer.data)
 
