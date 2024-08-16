@@ -1,11 +1,15 @@
-from django.shortcuts import render
+from django.db import transaction
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound
 from rest_framework.status import HTTP_204_NO_CONTENT
-from experiences.models import Perk
-from experiences.serializers import PerkSerializer
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.exceptions import ParseError
+
+from categories.models import Category
+from experiences.models import Experience, Perk
+from experiences.serializers import ExperienceSerializer, PerkSerializer
 
 # Create your views here.
 
@@ -68,3 +72,74 @@ class PerkDetail(APIView):
         perk = self.get_object(perk_id)
         perk.delete()
         return Response(status=HTTP_204_NO_CONTENT)
+
+
+def checkValidAndGetCategory(category_pk):
+    print(category_pk)
+    try:
+        category = Category.objects.get(pk=category_pk)
+        if category.kind != Category.CategoryKindChoices.EXPERIENCE:
+            raise ParseError("Category kind should be Experience")
+    except Category.DoesNotExist:
+        raise ParseError("Category can not found")
+
+    return category
+
+
+def checkValidAndGetPerk(perk_pk):
+    try:
+        perk = Perk.objects.get(pk=perk_pk)
+    except Perk.DoesNotExist:
+        raise ParseError("Perk can not found")
+
+    return perk
+
+
+class Experiences(APIView):
+
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get(self, request):
+        experiences = Experience.objects.all()
+
+        serializer = ExperienceSerializer(experiences, many=True)
+
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = ExperienceSerializer(data=request.data)
+
+        if serializer.is_valid():
+            try:
+                with transaction.atomic():
+                    category_pk = request.data.get("category")
+
+                    category = checkValidAndGetCategory(category_pk)
+
+                    print(category)
+
+                    perk_pks = request.data.get("perks")
+
+                    perks = []
+
+                    for perk_pk in perk_pks:
+                        perk = checkValidAndGetPerk(perk_pk)
+                        perks.append(perk)
+
+                    print(perks)
+
+                    experience = serializer.save(
+                        host=request.user,
+                        category=category,
+                        perks=perks,
+                    )
+
+                    return Response(
+                        ExperienceSerializer(experience).data,
+                    )
+
+            except Exception:
+                raise ParseError("Fail to create Experience")
+
+        else:
+            return Response(serializer.errors)

@@ -39,7 +39,6 @@ class CreateRoomBookingSerializer(serializers.ModelSerializer):
             )
         room = self.context.get("room")
 
-        print(room)
         if Booking.objects.filter(
             room=room,
             check_in__lte=data["check_out"],
