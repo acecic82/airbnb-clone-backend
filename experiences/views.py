@@ -99,13 +99,6 @@ class Experiences(APIView):
 
     permission_classes = [IsAuthenticatedOrReadOnly]
 
-    def get(self, request):
-        experiences = Experience.objects.all()
-
-        serializer = ExperienceSerializer(experiences, many=True)
-
-        return Response(serializer.data)
-
     def post(self, request):
         serializer = ExperienceSerializer(data=request.data)
 
