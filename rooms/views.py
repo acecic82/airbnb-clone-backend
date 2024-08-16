@@ -10,10 +10,10 @@ from rest_framework.exceptions import (
     ParseError,
     PermissionDenied,
 )
-from rest_framework.status import HTTP_204_NO_CONTENT
+from rest_framework.status import HTTP_204_NO_CONTENT, HTTP_200_OK
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from bookings.models import Booking
-from bookings.serializers import PublicBookingSerializer
+from bookings.serializers import CreateRoomBookingSerializer, PublicBookingSerializer
 from config import settings
 from medias.serializers import PhotoSerializer
 from reviews.serializers import ReviewSerializer
@@ -358,3 +358,22 @@ class RoomBookings(APIView):
         return Response(
             serializer.data,
         )
+
+    def post(self, request, room_id):
+        room = self.get_object(room_id)
+        print(room_id)
+        serializer = CreateRoomBookingSerializer(
+            data=request.data,
+            context={"room": room},
+        )
+
+        if serializer.is_valid():
+            booking = serializer.save(
+                room=room,
+                user=request.user,
+                kind=Booking.BookingKindChoices.ROOM,
+            )
+            serializer = PublicBookingSerializer(booking)
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors)
