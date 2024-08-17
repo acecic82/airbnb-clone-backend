@@ -73,24 +73,18 @@ class CreateExperienceBookingSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         experience = self.context.get("experience")
-        print(experience)
 
         experience_date = self.context.get("experience_time")
         experience_date_time = datetime.datetime.strptime(
             experience_date, "%Y-%m-%dT%H:%M:%S%z"
         )
 
-        print(experience_date)
-
         bookings = Booking.objects.filter(
             experience=experience,
             experience_time__gte=experience_date_time,
         )
 
-        print(bookings)
-
         for booking in bookings.all():
-            print(booking)
             booking_date = booking.experience_time.date()
 
             if booking_date == experience_date_time.date():

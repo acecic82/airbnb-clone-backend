@@ -1,4 +1,6 @@
+from datetime import datetime
 from django.db import transaction
+from django.utils import timezone
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -204,7 +206,6 @@ class ExperienceDetail(APIView):
         if serializer.is_valid():
             try:
                 with transaction.atomic():
-
                     if "category" in request.data:
                         category_pk = request.data.get("category")
                         category = checkValidAndGetCategory(category_pk)
@@ -241,7 +242,7 @@ class ExperienceDetail(APIView):
 
 class ExperienceBookings(APIView):
 
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticated]
 
     def get_object(self, pk):
         try:
@@ -288,3 +289,63 @@ class ExperienceBookings(APIView):
             return Response(serializer.data)
         else:
             return Response(serializer.errors)
+
+
+class ExperienceBookingDetail(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, experience_pk, booking_pk):
+        try:
+            Experience.objects.get(pk=experience_pk)
+            return Booking.objects.get(pk=booking_pk)
+        except Experience.DoesNotExist:
+            raise NotFound("Experience not found")
+        except Booking.DoesNotExist:
+            raise NotFound("Booking not found")
+
+    def get(self, request, experience_pk, booking_pk):
+        booking = self.get_object(experience_pk, booking_pk)
+
+        serializer = PublicBookingSerializer(
+            booking,
+        )
+
+        return Response(serializer.data)
+
+    def put(self, request, experience_pk, booking_pk):
+        booking = self.get_object(experience_pk, booking_pk)
+
+        if "experience_time" in request.data:
+
+            now = timezone.localtime(timezone.now())
+            experience_time = request.data.get("experience_time")
+            experience_time = datetime.strptime(experience_time, "%Y-%m-%dT%H:%M:%S%z")
+
+            if now > experience_time:
+                raise ParseError("Can't modify in the past!")
+
+        serializer = PublicBookingSerializer(
+            booking,
+            data=request.data,
+            partial=True,
+        )
+
+        if serializer.is_valid():
+            updated_booking = serializer.save()
+
+            serializer = PublicBookingSerializer(
+                updated_booking,
+            )
+
+            return Response(serializer.data)
+
+        else:
+            return Response(serializer.errors)
+
+    def delete(self, request, experience_pk, booking_pk):
+        booking = self.get_object(experience_pk, booking_pk)
+
+        booking.delete()
+
+        return Response(status=HTTP_204_NO_CONTENT)
