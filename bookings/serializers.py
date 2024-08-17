@@ -1,3 +1,4 @@
+import datetime
 from django.utils import timezone
 from rest_framework import serializers
 from .models import Booking
@@ -47,6 +48,54 @@ class CreateRoomBookingSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Those (or some) of those dates are already taken."
             )
+        return data
+
+
+class CreateExperienceBookingSerializer(serializers.ModelSerializer):
+
+    experience_time = serializers.DateTimeField()
+
+    class Meta:
+        model = Booking
+        fields = (
+            "experience_time",
+            "guests",
+        )
+
+    def validate_experience_time(self, value):
+        now = timezone.localtime(timezone.now()).date()
+        date = value.date()
+
+        if now > date:
+            raise serializers.ValidationError("Can't book in the past!")
+
+        return value
+
+    def validate(self, data):
+        experience = self.context.get("experience")
+        print(experience)
+
+        experience_date = self.context.get("experience_time")
+        experience_date_time = datetime.datetime.strptime(
+            experience_date, "%Y-%m-%dT%H:%M:%S%z"
+        )
+
+        print(experience_date)
+
+        bookings = Booking.objects.filter(
+            experience=experience,
+            experience_time__gte=experience_date_time,
+        )
+
+        print(bookings)
+
+        for booking in bookings.all():
+            print(booking)
+            booking_date = booking.experience_time.date()
+
+            if booking_date == experience_date_time.date():
+                raise serializers.ValidationError("Alread booked this time")
+
         return data
 
 

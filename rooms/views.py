@@ -361,7 +361,7 @@ class RoomBookings(APIView):
 
     def post(self, request, room_id):
         room = self.get_object(room_id)
-        print(room_id)
+
         serializer = CreateRoomBookingSerializer(
             data=request.data,
             context={"room": room},

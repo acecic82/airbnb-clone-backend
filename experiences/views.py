@@ -4,9 +4,14 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound
 from rest_framework.status import HTTP_204_NO_CONTENT
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework.exceptions import ParseError
 
+from bookings.models import Booking
+from bookings.serializers import (
+    CreateExperienceBookingSerializer,
+    PublicBookingSerializer,
+)
 from categories.models import Category
 from experiences.models import Experience, Perk
 from experiences.serializers import (
@@ -80,6 +85,9 @@ class PerkDetail(APIView):
 
 
 class ExperiencePerks(APIView):
+
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, experience_pk):
         try:
             experience = Experience.objects.get(pk=experience_pk)
@@ -229,3 +237,54 @@ class ExperienceDetail(APIView):
         experience.delete()
 
         return Response(status=HTTP_204_NO_CONTENT)
+
+
+class ExperienceBookings(APIView):
+
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get_object(self, pk):
+        try:
+            return Experience.objects.get(pk=pk)
+        except Experience.DoesNotExist:
+            raise NotFound
+
+    def get(self, request, experience_pk):
+        experience = self.get_object(experience_pk)
+
+        bookings = Booking.objects.filter(
+            experience=experience,
+        )
+
+        serializer = PublicBookingSerializer(
+            bookings,
+            many=True,
+        )
+
+        return Response(serializer.data)
+
+    def post(self, request, experience_pk):
+        experience = self.get_object(experience_pk)
+
+        serializer = CreateExperienceBookingSerializer(
+            data=request.data,
+            context={
+                "experience": experience,
+                "experience_time": request.data.get("experience_time"),
+            },
+        )
+
+        if serializer.is_valid():
+
+            booking = serializer.save(
+                experience=experience,
+                user=request.user,
+                kind=Booking.BookingKindChoices.EXPERIENCE,
+                experience_time=request.data.get("experience_time"),
+            )
+
+            serializer = PublicBookingSerializer(booking)
+
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors)
