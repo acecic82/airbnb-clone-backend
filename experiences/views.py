@@ -9,7 +9,11 @@ from rest_framework.exceptions import ParseError
 
 from categories.models import Category
 from experiences.models import Experience, Perk
-from experiences.serializers import ExperienceSerializer, PerkSerializer
+from experiences.serializers import (
+    ExperienceDetailSerializer,
+    ExperienceSerializer,
+    PerkSerializer,
+)
 
 # Create your views here.
 
@@ -99,6 +103,16 @@ class Experiences(APIView):
 
     permission_classes = [IsAuthenticatedOrReadOnly]
 
+    def get(self, request):
+        experiences = Experience.objects.all()
+
+        serializer = ExperienceSerializer(
+            experiences,
+            many=True,
+        )
+
+        return Response(serializer.data)
+
     def post(self, request):
         serializer = ExperienceSerializer(data=request.data)
 
@@ -109,8 +123,6 @@ class Experiences(APIView):
 
                     category = checkValidAndGetCategory(category_pk)
 
-                    print(category)
-
                     perk_pks = request.data.get("perks")
 
                     perks = []
@@ -118,8 +130,6 @@ class Experiences(APIView):
                     for perk_pk in perk_pks:
                         perk = checkValidAndGetPerk(perk_pk)
                         perks.append(perk)
-
-                    print(perks)
 
                     experience = serializer.save(
                         host=request.user,
@@ -136,3 +146,66 @@ class Experiences(APIView):
 
         else:
             return Response(serializer.errors)
+
+
+class ExperienceDetail(APIView):
+
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get_object(self, pk):
+        try:
+            return Experience.objects.get(pk=pk)
+        except Experience.DoesNotExist:
+            raise NotFound
+
+    def get(self, request, experience_pk):
+        experience = self.get_object(experience_pk)
+
+        serializer = ExperienceDetailSerializer(experience)
+        return Response(serializer.data)
+
+    def put(self, request, experience_pk):
+        experience = self.get_object(experience_pk)
+
+        serializer = ExperienceSerializer(
+            experience,
+            data=request.data,
+            partial=True,
+        )
+
+        if serializer.is_valid():
+            try:
+                with transaction.atomic():
+
+                    if "category" in request.data:
+                        category_pk = request.data.get("category")
+                        category = checkValidAndGetCategory(category_pk)
+
+                    if "perks" in request.data:
+                        perk_pks = request.data.get("perks")
+                        experience.perks.clear()
+
+                        for perk_pk in perk_pks:
+                            perk = checkValidAndGetPerk(perk_pk)
+                            experience.perks.add(perk)
+
+                    experience = serializer.save(
+                        host=request.user,
+                        category=category if "category" in request.data else None,
+                    )
+
+                    return Response(
+                        ExperienceSerializer(experience).data,
+                    )
+
+            except Exception:
+                raise ParseError("Fail to update Experience")
+        else:
+            Response(serializer.errors)
+
+    def delete(self, request, experience_pk):
+        experience = self.get_object(experience_pk)
+
+        experience.delete()
+
+        return Response(status=HTTP_204_NO_CONTENT)

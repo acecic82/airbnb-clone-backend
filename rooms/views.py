@@ -120,7 +120,7 @@ class RoomDeatil(APIView):
 
         roomSerializer = RoomSerializer(
             room,
-            request.data,
+            data=request.data,
             partial=True,
         )
 
