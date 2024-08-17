@@ -13,6 +13,7 @@ from experiences.serializers import (
     ExperienceDetailSerializer,
     ExperienceSerializer,
     PerkSerializer,
+    TinyPerkSerializer,
 )
 
 # Create your views here.
@@ -76,6 +77,25 @@ class PerkDetail(APIView):
         perk = self.get_object(perk_id)
         perk.delete()
         return Response(status=HTTP_204_NO_CONTENT)
+
+
+class ExperiencePerks(APIView):
+    def get(self, request, experience_pk):
+        try:
+            experience = Experience.objects.get(pk=experience_pk)
+        except Experience.DoesNotExist:
+            raise NotFound
+        perks = []
+
+        for perk in experience.perks.all():
+            perks.append(perk)
+
+        serializer = TinyPerkSerializer(
+            experience.perks,
+            many=True,
+        )
+
+        return Response(serializer.data)
 
 
 def checkValidAndGetCategory(category_pk):
