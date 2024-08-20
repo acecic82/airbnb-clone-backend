@@ -1,5 +1,6 @@
 from strawberry.permission import BasePermission
 from strawberry.types import Info
+import typing
 
 
 class OnlyLoggedIn(BasePermission):
