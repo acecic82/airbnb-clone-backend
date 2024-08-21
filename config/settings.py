@@ -158,5 +158,6 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         "config.permissions.TrustMeBroAuthentication",
         "rest_framework.authentication.TokenAuthentication",
+        "config.permissions.JWTAuthentication",
     ]
 }
