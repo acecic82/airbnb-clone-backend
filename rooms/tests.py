@@ -1,5 +1,7 @@
 from django.test import TestCase
 from rest_framework.test import APITestCase
+
+from users.models import User
 from . import models
 
 # Create your tests here.
@@ -48,11 +50,7 @@ class TestAmenities(APITestCase):
             },
         )
 
-        self.assertEqual(
-            response.status_code,
-            200,
-            "Not 200 status code",
-        )
+        self.assertEqual(response.status_code, 200, "Not 200 status code")
 
         data = response.json()
 
@@ -119,7 +117,29 @@ class TestAmenity(APITestCase):
             f"{self.URL}/1",
         )
 
-        self.assertEqual(
-            response.status_code,
-            204,
-        )
+        self.assertEqual(response.status_code, 204)
+
+
+class TestRoom(APITestCase):
+
+    URL = "/api/v1/rooms"
+
+    def setUp(self):
+        user = User.objects.create(username="test")
+
+        user.set_password("123")
+        user.save()
+
+        self.user = user
+
+    def test_crate_room(self):
+
+        response = self.client.post(f"{self.URL}/")
+
+        self.assertEqual(response.status_code, 403)
+
+        self.client.force_login(self.user)
+
+        response = self.client.post(f"{self.URL}/")
+
+        self.assertEqual(response.status_code, 400)

@@ -87,7 +87,7 @@ class Rooms(APIView):
                     request, serializer, category_pk
                 )
             else:
-                return Response(serializer.errors)
+                return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
         else:
             raise NotAuthenticated
 
