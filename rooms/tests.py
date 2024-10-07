@@ -132,7 +132,7 @@ class TestRoom(APITestCase):
 
         self.user = user
 
-    def test_crate_room(self):
+    def test_create_room(self):
 
         response = self.client.post(f"{self.URL}/")
 
